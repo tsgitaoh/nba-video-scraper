@@ -1,8 +1,8 @@
 import time
 from pathlib import Path
-from pprint import pprint
-from yt_dlp import YoutubeDL as yt
-import requests
+import json
+import subprocess
+
 from bs4 import BeautifulSoup
 from selenium.webdriver import Chrome, ChromeOptions
 from selenium.webdriver.common.by import By
@@ -66,17 +66,43 @@ def go_downlod(url: str, path: Path, driver: Chrome):
 
     xpath = '//*[@id="alt-play-module"]'
     driver.find_element(By.XPATH, xpath).click()
-    time.sleep(33)
+    time.sleep(3)
+    headers = [
+        "Accept: */*",
+        "Accept-Encoding: gzip, deflate, br, zstd",
+        "Accept-Language: en-GB,en-US;q=0.9,en;q=0.8",
+        "Connection: keep-alive",
+        "Origin: https://www.nba.com",
+        "Referer: https://www.nba.com/",
+        "Sec-Fetch-Dest: empty",
+        "Sec-Fetch-Mode: cors",
+        "Sec-Fetch-Site: cross-site",
+        "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+        'sec-ch-ua: "Google Chrome";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
+        "sec-ch-ua-mobile: ?0",
+        "sec-ch-ua-platform: Windows",
+    ]
 
-    vid = driver.find_element(By.TAG_NAME, "video")
-    src = vid.get_dom_attribute("src")
+    header_args = []
+    for h in headers:
+        header_args += ["-headers", f"{h}\r\n"]
 
-    config = {"outtmpl": str(path), "format": "best"}
-    try:
-        with yt(config) as video:
-            video.download([src])
-    except Exception as e:
-        print(e)
+    for entry in driver.get_log("performance"):
+        msg = json.loads(entry["message"])["message"]
+        if msg["method"] == "Network.responseReceived":
+            url = msg["params"]["response"]["url"]
+            if ".m3u8" in url or ".mp4" in url:
+                # cmd = ["ffmpeg", *header_args, "-i", url, "-c", "copy", str(path)]
+                cmd = [
+                    "streamlink",
+                    "--http-header",
+                    *header_args,
+                    url,
+                    "best",
+                    "-o",
+                    str(path),
+                ]
+                subprocess.run(cmd)
 
 
 def scroll_into_view(driver: Chrome, element: WebElement, position: str = "center"):
@@ -118,7 +144,7 @@ if __name__ == "__main__":
         # ops.add_argument("--disable-gpu")
         ops.add_experimental_option("useAutomationExtension", False)
         ops.add_experimental_option("excludeSwitches", ["enable-automation"])
-        # ops.set_capability("goog:loggingPrefs", {"performance": "ALL"})
+        ops.set_capability("goog:loggingPrefs", {"performance": "ALL"})
 
         # Start Selenium Driver
         driver = Chrome(options=ops)
