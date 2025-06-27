@@ -96,7 +96,7 @@ def go_downlod(url: str, path: Path, driver: Chrome):
                 cmd = [
                     "streamlink",
                     "--http-header",
-                    *header_args,
+                    *headers,
                     url,
                     "best",
                     "-o",
