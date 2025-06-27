@@ -40,6 +40,10 @@ def get_video_by_section(section_title: str, data: dict):
 def download(video: dict, driver: Chrome):
     path: Path = video.get("location")
     path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        print("Video already Exist HERE")
+        print('PATH: ', str(path))
+        return
     go_downlod(video.get("link"), path, driver)
 
 
@@ -67,25 +71,7 @@ def go_downlod(url: str, path: Path, driver: Chrome):
     xpath = '//*[@id="alt-play-module"]'
     driver.find_element(By.XPATH, xpath).click()
     time.sleep(3)
-    headers = [
-        "Accept: */*",
-        "Accept-Encoding: gzip, deflate, br, zstd",
-        "Accept-Language: en-GB,en-US;q=0.9,en;q=0.8",
-        "Connection: keep-alive",
-        "Origin: https://www.nba.com",
-        "Referer: https://www.nba.com/",
-        "Sec-Fetch-Dest: empty",
-        "Sec-Fetch-Mode: cors",
-        "Sec-Fetch-Site: cross-site",
-        "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
-        'sec-ch-ua: "Google Chrome";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
-        "sec-ch-ua-mobile: ?0",
-        "sec-ch-ua-platform: Windows",
-    ]
-
-    header_args = []
-    for h in headers:
-        header_args += ["-headers", f"{h}\r\n"]
+    headers = 'Accept=*/*,Accept-Encoding=gzip, deflate, br, zstd,Accept-Language=en-GB,en-US;q=0.9,en;q=0.8,Connection=keep-alive,Origin=https://www.nba.com,Referer=https://www.nba.com/,Sec-Fetch-Dest=empty,Sec-Fetch-Mode=cors,Sec-Fetch-Site=cross-site,User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36,sec-ch-ua="Google Chrome";v="137", "Chromium";v="137", "Not/A)Brand";v="24",sec-ch-ua-mobile=?0,sec-ch-ua-platform=Windows'
 
     for entry in driver.get_log("performance"):
         msg = json.loads(entry["message"])["message"]
@@ -118,7 +104,7 @@ def scroll_into_view(driver: Chrome, element: WebElement, position: str = "cente
 
 
 def process_path(path: str):
-    return path.replace(":", " ").replace("-", "").replace(" ", "_")
+    return path.replace(":", "").replace('.', '').replace("-", "").replace(" ", "_")
 
 
 if __name__ == "__main__":
